@@ -4,44 +4,76 @@
 # An Artificial Neural Network
 # Scott Young - CSC 578 - Oct. 2012
 
+import os
 import sys
 import math
+import random
 from optparse import OptionParser
 
 class NeuralNet(object):
     """ An artificial neural network """
 
-    def __init__(self, eta, error_margin, hidden_nodes, max_epochs, weight):
+    def __init__(self, eta, error_margin, hidden_nodes, max_epochs, weight, input_file):
         """ Constructor for the neural network. """
-
         self.eta = eta                      # learning rate
         self.error_margin = error_margin    # error margin to correctly classify
         self.hidden_nodes = hidden_nodes    # number of hidden nodes
         self.max_epochs = max_epochs        # max number of epochs to train for
         self.max_weight = weight            # max random weight value
         self.min_weight = -weight           # min random weight value
+        self.output_weights = []            # the output weights 
 
-        # hardcode training examples for xor
-        number_inputs = 2
-        t1 = [0, 0, 0]
-        t2 = [0, 1, 1]
-        t3 = [1, 0, 1]
-        t4 = [1, 1, 0]
-        self.training_data = [t1, t2, t3, t4]
+        # read in the input file
+        self.training_data = []
+        if not os.path.exists(input_file):
+            print "Input file doesn't exist."
+            sys.exit(2)
+        with open(input_file, 'r') as file:
+            for line in file:
+                training_input = line.split(',')
+                i = 0
+                for input in training_input:
+                    training_input[i] = float(input.rstrip())
+                    i = i + 1
+                self.training_data.append(training_input)
 
-        # initialize network
-        number_hidden = 2
-        wH0 = -1            # threshold for hidden nodes
-        self.output_weights = [0.1, 0.1]
-        #append the hidden threshold to the end of the output's weights
+        # A list of a list of hidden unit's weights
+        self.hidden_units =  [[] for i in range(len(self.training_data[0])-1)] 
+
+        # Error if no training data
+        if not self.training_data:
+            print "No training data in file."
+            sys.exit(2)
+
+        # Set output weights
+        i = 0
+        while i < int(self.hidden_nodes):
+            print self.hidden_nodes
+            print "i: " + str(i)
+            weight = random.uniform(self.min_weight, self.max_weight)
+            self.output_weights.append(weight)
+            i = i + 1
+        wH0 = -1            # Threshold for hidden nodes
+        # Append the hidden threshold to the end of the output's weights
         self.output_weights.append(wH0)
 
-        wI0 = -1            # initial threshold for input nodes
+        # Set all hidden nodes' weights
+        i = 0
+        num_inputs = len(self.training_data[0]) - 1
+        while i < int(self.hidden_nodes):
+            j = 0
+            while j < num_inputs:
+                weight = random.uniform(self.min_weight, self.max_weight)
+                self.hidden_units[i].append(weight)
+                j = j + 1
+            i = i + 1
+
+        wI0 = -1            # Initial threshold for input nodes
         h1 = [.2, .1]
         h2 = [.1, -0.1]
         self.hidden_units = [h1, h2]
 
-        # append the input threshold to the end of each hidden unit's weightings
+        # Append the input threshold to the end of each hidden unit's weightings
         for h in self.hidden_units:
             h.append(wI0)
 
@@ -75,13 +107,14 @@ class NeuralNet(object):
             num_correct = 0
             max_rmse = 0
             ave_rmse = 0
+            total_error_sq = 0
             
             # for each training example
             for training_example in self.training_data:
 
                 # determine target (last item in list)
-                print "training example: " # TEST
-                print training_example # TEST
+                #print "training example: " # TEST
+                #print training_example # TEST
                 target = training_example[len(training_example)-1]
 
                 # create new example with last item to 1 for threshold
@@ -101,8 +134,8 @@ class NeuralNet(object):
 
                 # set last hidden output to 1 for threshold
                 hidden_output[len(hidden_output)-1] = 1
-                print "Hidden Outputs: " # TEST
-                print hidden_output # TEST
+                #print "Hidden Outputs: " # TEST
+                #print hidden_output # TEST
 
                 # for the output unit, calculate its output value
                 output = calculate_sigmoid(self.output_weights, hidden_output)
@@ -111,12 +144,12 @@ class NeuralNet(object):
                 # don't update waits if correct (break from loop)
                 #print "Error " + str(math.fabs(target-output)) # TEST
                 #print out_error # TEST
-                print "Output: " + str(output)
-                print "Target: " + str(target)
+                #print "Output: " + str(output)
+                #print "Target: " + str(target)
                 if math.fabs(target - output) < self.error_margin:
                     num_correct = num_correct + 1
-                    print "Correct"
-                    print
+                    #print "Correct"
+                    #print
                     continue
 
                 ### PROPATE THE ERROR BACKWARD ###
@@ -143,8 +176,7 @@ class NeuralNet(object):
                 total_error_squared = math.pow(out_error, 2)
                 for error in hidden_error:
                     total_error_squared = total_error_squared + math.pow(error, 2)
-                ave_rmse = math.sqrt(total_error_squared)
-
+                
                 #print "hidden error:"
                 #print hidden_error
                 #print "output weights:"
@@ -185,7 +217,9 @@ class NeuralNet(object):
                     #print "new hidden weights: " # TEST
                     #print h_node
 
-                print #TEST
+            ave_rmse = math.sqrt(total_error_squared)
+
+                #print #TEST
             #print "num correct " + str(num_correct)
             #print len(self.training_data)
             #print (num_correct / len(self.training_data))
@@ -242,15 +276,30 @@ def print_output(data):
 def main():
     """ Run program from the command line. """
 
-    # hard code initial values for testing
-    eta = 0.5
-    error_margin = .05
-    hidden_nodes = 2
-    max_epochs = 10000
-    weight = 5;
+    # Parse command line options and arguments.
+    usage = "usage: %prog [options] <input_file>"
+    parser = OptionParser(usage)
+    parser.add_option("-l", "-L", "--Eta", action="store", default=0.3,
+                      dest="eta", help="Set the learning rate (Eta). [default: %default]")
+    parser.add_option("-e", "-E", "--error", action="store", default=.05,
+                      dest="error", help="Set maximum error margin. [default: %default]")
+    parser.add_option("-p", "-P", "--epochs", action="store", default=10000,
+                      dest="epochs", help="Set maximum number of epochs. [default: %default]")
+    parser.add_option("-n", "-N", "--hiddenNodes", action="store",
+                      dest="hiddenNodes", default=10,
+                      help="Set the number of hidden nodes. [default: %default]")
+    parser.add_option("-w", "-W", "--weight", action="store", default=0.05,
+                      dest="weight", help="Set the max/min weights. [default: %default]")
+    (options, args) = parser.parse_args()
 
+    if len(args) == 0:
+        parser.error("Must specify path to input file.")
+    if len(args) > 1:
+        parser.error("Can only specify 1 input file.")
+    
     # Initialize network based upon parameters.
-    ann = NeuralNet(eta, error_margin, hidden_nodes, max_epochs, weight)
+    ann = NeuralNet(options.eta, options.error, options.hiddenNodes, 
+                    options.epochs, options.weight, args[0])
     ann.train()
 
 
