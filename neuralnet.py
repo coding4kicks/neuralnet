@@ -41,8 +41,6 @@ class NeuralNet(object):
                 self.training_data.append(training_input)
 
         # a list of a list of hidden unit's weights
-        print hidden_nodes
-        print (self.hidden_nodes)
         self.hidden_units =  [[] for i in range(self.hidden_nodes)] 
 
         # error if no training data
@@ -53,8 +51,6 @@ class NeuralNet(object):
         # set output weights
         i = 0
         while i < int(self.hidden_nodes):
-            #print self.hidden_nodes
-            #print "i: " + str(i)
             weight = random.uniform(self.min_weight, self.max_weight)
             self.output_weights.append(weight)
             i = i + 1
@@ -68,7 +64,6 @@ class NeuralNet(object):
         i = 0
         num_inputs = len(self.training_data[0]) - 1
         while i < int(self.hidden_nodes):
-            print "i: " + str(i)
             j = 0
             while j < num_inputs:
                 weight = random.uniform(self.min_weight, self.max_weight)
@@ -110,14 +105,12 @@ class NeuralNet(object):
             max_rmse = 0
             ave_rmse = 0
 
-            total_error_sq = 0  # to calc ave_rmse
+            total_error_sq = 0  # used to calc ave_rmse
                         
             # for each training example
             for training_example in self.training_data:
 
                 # determine target (last item in list)
-                #print "training example: " # TEST
-                #print training_example # TEST
                 target = training_example[len(training_example)-1]
 
                 # create new example with last item to 1 for threshold
