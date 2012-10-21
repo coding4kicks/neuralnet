@@ -15,13 +15,13 @@ class NeuralNet(object):
 
     def __init__(self, eta, error_margin, hidden_nodes, max_epochs, weight, input_file):
         """ Constructor for the neural network. """
-        self.eta = eta                      # learning rate
-        self.error_margin = error_margin    # error margin to correctly classify
-        self.hidden_nodes = hidden_nodes    # number of hidden nodes
-        self.max_epochs = max_epochs        # max number of epochs to train for
-        self.max_weight = weight            # max random weight value
-        self.min_weight = -weight           # min random weight value
-        self.output_weights = []            # the output weights 
+        self.eta = eta                          # learning rate
+        self.error_margin = error_margin        # error margin to correctly classify
+        self.hidden_nodes = int(hidden_nodes)   # number of hidden nodes
+        self.max_epochs = max_epochs            # max number of epochs to train for
+        self.max_weight = weight                # max random weight value
+        self.min_weight = -weight               # min random weight value
+        self.output_weights = []                # the output weights 
 
         # read in the input file
         self.training_data = []
@@ -38,7 +38,9 @@ class NeuralNet(object):
                 self.training_data.append(training_input)
 
         # A list of a list of hidden unit's weights
-        self.hidden_units =  [[] for i in range(len(self.training_data[0])-1)] 
+        print hidden_nodes
+        print (self.hidden_nodes)
+        self.hidden_units =  [[] for i in range(self.hidden_nodes)] 
 
         # Error if no training data
         if not self.training_data:
@@ -48,8 +50,8 @@ class NeuralNet(object):
         # Set output weights
         i = 0
         while i < int(self.hidden_nodes):
-            print self.hidden_nodes
-            print "i: " + str(i)
+            #print self.hidden_nodes
+            #print "i: " + str(i)
             weight = random.uniform(self.min_weight, self.max_weight)
             self.output_weights.append(weight)
             i = i + 1
@@ -61,6 +63,7 @@ class NeuralNet(object):
         i = 0
         num_inputs = len(self.training_data[0]) - 1
         while i < int(self.hidden_nodes):
+            print "i: " + str(i)
             j = 0
             while j < num_inputs:
                 weight = random.uniform(self.min_weight, self.max_weight)
@@ -69,16 +72,10 @@ class NeuralNet(object):
             i = i + 1
 
         wI0 = -1            # Initial threshold for input nodes
-        h1 = [.2, .1]
-        h2 = [.1, -0.1]
-        self.hidden_units = [h1, h2]
 
         # Append the input threshold to the end of each hidden unit's weightings
         for h in self.hidden_units:
             h.append(wI0)
-
-        # need to add wH0/wI0 to weight vectors, and 1 to input vectors
-
 
     def train(self):
         """ Train the neural network. """
@@ -107,8 +104,9 @@ class NeuralNet(object):
             num_correct = 0
             max_rmse = 0
             ave_rmse = 0
-            total_error_sq = 0
-            
+
+            total_error_sq = 0  # to calc ave_rmse
+                        
             # for each training example
             for training_example in self.training_data:
 
@@ -158,8 +156,8 @@ class NeuralNet(object):
                 out_error = output * (1 - output) * (target - output)
                 
                 # update max_rmse if necessary
-                if math.fabs(out_error) > max_rmse:
-                    max_rmse = math.fabs(out_error)
+                #if math.fabs(out_error) > max_rmse:
+                #    max_rmse = math.fabs(out_error)
 
                 # for each hidden unit, calculate its error
                 i = 0
@@ -167,16 +165,24 @@ class NeuralNet(object):
                     hidden_error[i] = h_out * (1 - h_out) * self.output_weights[i] * out_error
             
                     # update max_rmse if necessary
-                    if math.fabs(hidden_error[i]) > max_rmse:
-                        max_rmse = math.fabs(hidden_error[i])
+                    #if math.fabs(hidden_error[i]) > max_rmse:
+                    #    max_rmse = math.fabs(hidden_error[i])
                     i = i + 1
 
-
-                # udate the average error
-                total_error_squared = math.pow(out_error, 2)
+                # Calculate the current rmse
+                current_rmse = 0    
+                total = math.pow(out_error, 2)
                 for error in hidden_error:
-                    total_error_squared = total_error_squared + math.pow(error, 2)
-                
+                    total = total + math.pow(error, 2)
+                current_rmse = math.sqrt(total)
+
+                # Update max rmse if necessary
+                if current_rmse > max_rmse:
+                    max_rmse = current_rmse
+
+                # Add current rmse to total squared
+                total_error_sq = total_error_sq + math.pow(current_rmse, 2)
+
                 #print "hidden error:"
                 #print hidden_error
                 #print "output weights:"
@@ -217,7 +223,8 @@ class NeuralNet(object):
                     #print "new hidden weights: " # TEST
                     #print h_node
 
-            ave_rmse = math.sqrt(total_error_squared)
+            # Calcualte average rmse for all examples during this epoch
+            ave_rmse = math.sqrt(total_error_sq / (len(self.training_data)))
 
                 #print #TEST
             #print "num correct " + str(num_correct)
