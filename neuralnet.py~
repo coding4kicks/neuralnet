@@ -15,6 +15,7 @@ class NeuralNet(object):
 
     def __init__(self, eta, error_margin, hidden_nodes, max_epochs, weight, input_file):
         """ Constructor for the neural network. """
+
         self.eta = eta                          # learning rate
         self.error_margin = error_margin        # error margin to correctly classify
         self.hidden_nodes = int(hidden_nodes)   # number of hidden nodes
@@ -37,17 +38,17 @@ class NeuralNet(object):
                     i = i + 1
                 self.training_data.append(training_input)
 
-        # A list of a list of hidden unit's weights
+        # a list of a list of hidden unit's weights
         print hidden_nodes
         print (self.hidden_nodes)
         self.hidden_units =  [[] for i in range(self.hidden_nodes)] 
 
-        # Error if no training data
+        # error if no training data
         if not self.training_data:
             print "No training data in file."
             sys.exit(2)
 
-        # Set output weights
+        # set output weights
         i = 0
         while i < int(self.hidden_nodes):
             #print self.hidden_nodes
@@ -55,11 +56,13 @@ class NeuralNet(object):
             weight = random.uniform(self.min_weight, self.max_weight)
             self.output_weights.append(weight)
             i = i + 1
-        wH0 = -1            # Threshold for hidden nodes
-        # Append the hidden threshold to the end of the output's weights
+
+        wH0 = -1            # threshold for hidden nodes
+
+        # append the hidden threshold to the end of the output's weights
         self.output_weights.append(wH0)
 
-        # Set all hidden nodes' weights
+        # set all hidden nodes' weights
         i = 0
         num_inputs = len(self.training_data[0]) - 1
         while i < int(self.hidden_nodes):
@@ -71,18 +74,18 @@ class NeuralNet(object):
                 j = j + 1
             i = i + 1
 
-        wI0 = -1            # Initial threshold for input nodes
+        wI0 = -1            # initial threshold for input nodes
 
-        # Append the input threshold to the end of each hidden unit's weightings
+        # append the input threshold to the end of each hidden unit's weightings
         for h in self.hidden_units:
             h.append(wI0)
 
     def train(self):
         """ Train the neural network. """
 
-        training = True     # Status of training(Done = False)
+        training = True     # status of training(Done = False)
 
-        epoch = 1           # Current Epoch
+        epoch = 1           # current Epoch
         output = 0          # output for the output node
         out_error = 0       # error term for the output
         num_correct = 0     # the number of training examples classified correctly
@@ -122,116 +125,78 @@ class NeuralNet(object):
                 ### PROPAGATE THE INPUT FORWARD ###
 
                 # for each hidden unit, calculate its output value
-                #print training_example # TEST
                 i = 0
                 while i < len(self.hidden_units):
-                    #print self.hidden_units[i]
-                    #print example
                     hidden_output[i] = calculate_sigmoid(self.hidden_units[i], example)
                     i = i + 1
 
                 # set last hidden output to 1 for threshold
                 hidden_output[len(hidden_output)-1] = 1
-                #print "Hidden Outputs: " # TEST
-                #print hidden_output # TEST
 
                 # for the output unit, calculate its output value
                 output = calculate_sigmoid(self.output_weights, hidden_output)
-                #print "Output: " + str(output) # TEST
 
-                # don't update waits if correct (break from loop)
-                #print "Error " + str(math.fabs(target-output)) # TEST
-                #print out_error # TEST
-                #print "Output: " + str(output)
-                #print "Target: " + str(target)
+                # don't update weights if correct (break from loop)
                 if math.fabs(target - output) < self.error_margin:
                     num_correct = num_correct + 1
-                    #print "Correct"
-                    #print
                     continue
 
                 ### PROPATE THE ERROR BACKWARD ###
 
                 # for the output unit, calculate its error
                 out_error = output * (1 - output) * (target - output)
-                
-                # update max_rmse if necessary
-                #if math.fabs(out_error) > max_rmse:
-                #    max_rmse = math.fabs(out_error)
 
                 # for each hidden unit, calculate its error
                 i = 0
                 for h_out in hidden_output:
                     hidden_error[i] = h_out * (1 - h_out) * self.output_weights[i] * out_error
-            
-                    # update max_rmse if necessary
-                    #if math.fabs(hidden_error[i]) > max_rmse:
-                    #    max_rmse = math.fabs(hidden_error[i])
                     i = i + 1
 
-                # Calculate the current rmse
+                # calculate the current rmse
                 current_rmse = 0    
                 total = math.pow(out_error, 2)
                 for error in hidden_error:
                     total = total + math.pow(error, 2)
                 current_rmse = math.sqrt(total)
 
-                # Update max rmse if necessary
+                # update max rmse if necessary
                 if current_rmse > max_rmse:
                     max_rmse = current_rmse
 
-                # Add current rmse to total squared
+                # add current rmse to total squared
                 total_error_sq = total_error_sq + math.pow(current_rmse, 2)
-
-                #print "hidden error:"
-                #print hidden_error
-                #print "output weights:"
-                #print self.output_weights
 
                 ### UPDATE ALL WEIGHTS ###
 
                 # update all weights for the output
                 i = 0
                 for weight in self.output_weights:
-                    #print out_error
                     weight_delta = self.eta * out_error * hidden_output[i]
                     self.output_weights[i] = weight + weight_delta
                     i = i + 1
-                #print "new output weights: "
-                #print self.output_weights
 
                 # update the weights for each hidden node
                 i = 0
                 for h_node in self.hidden_units:
 
-                    node = h_node[:]
-                    #print "old hidden weights: " # TEST
-                    #print h_node
+                    node = h_node[:] # copy of the hidden nodes weights
                     
                     # update the hidden node' weights
                     error = hidden_error[i]
                     j = 0
                     for weight in node:
-                        #print "example " + str(i) + "-" + str(j) + ":" + str(example[j])
                         weight_delta = self.eta * error * example[j]
                         node[j] = weight + weight_delta
-                        #print "weight delta: " + str(weight_delta)
-                        #print "hidden_node: " + str(h_node[j])
                         j = j + 1
                     self.hidden_units[i] = node
                     i = i + 1
-                    #print "new hidden weights: " # TEST
-                    #print h_node
 
-            # Calcualte average rmse for all examples during this epoch
+            # calcualte average rmse for all examples during this epoch
             ave_rmse = math.sqrt(total_error_sq / (len(self.training_data)))
-
-                #print #TEST
-            #print "num correct " + str(num_correct)
-            #print len(self.training_data)
-            #print (num_correct / len(self.training_data))
+            
+            # calculate the percent of examples classified correct
             percent_correct = (float(num_correct) / len(self.training_data)) * 100
-            #print "per correct " + str(percent_correct)
+           
             # output the epoch's data and increment epoch    
             data["epoch"] = epoch
             data["max_RMSE"] = max_rmse
@@ -245,17 +210,13 @@ class NeuralNet(object):
                 training = False
             
             epoch = epoch + 1
-
         
         # TEST print weights
-        print "Final Output Weights: "
-        print self.output_weights
-        print
-        print "Final Hidden Weights: "
-        for h in self.hidden_units:
-            print h
-        print "-------------------------------"
-        print
+        #print "Final Output Weights: "
+        #print self.output_weights
+        #print
+        #print "Final Hidden Weights: "
+        #for h in self.hidden_units:
 
 # Helper Functions
 def calculate_sigmoid(weight_vector, input_vector):
@@ -308,7 +269,6 @@ def main():
     ann = NeuralNet(options.eta, options.error, options.hiddenNodes, 
                     options.epochs, options.weight, args[0])
     ann.train()
-
 
 if __name__ == "__main__":
     """ enable command line execution """
