@@ -2,8 +2,6 @@
 # encoding: utf-8
 
 # An Artificial Neural Network
-# Scott Young - CSC 578 - Oct. 2012
-
 
 import os
 import sys
